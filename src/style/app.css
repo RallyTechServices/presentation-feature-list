@@ -35,7 +35,8 @@
 }
 .feature-header-description {
     text-transform: none!important;
-    font-family: ProximaNova,Helvetica,Arial;
+    font-family: ProximaNovaSemiBold,Helvetica,Arial;
+    font-size: 12px;
 }
 .x-panel-header-text-container-default {
     color: white;

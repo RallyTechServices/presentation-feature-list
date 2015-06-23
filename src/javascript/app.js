@@ -20,15 +20,19 @@ Ext.define("presentation-feature-list", {
             this.stateMappings);
     },
     _buildPrettyGrid: function(projectContext, stateMappings){
-        var title = _.values(stateMappings);
 
         var state_panels = [];
-        _.each(_.keys(stateMappings), function(state){
-            state_panels.push(this._getStatePanel(state, stateMappings));
+        _.each(stateMappings, function(obj, state){
+            state_panels.push({
+                xtype: 'tsfeaturegrid',
+                state: state,
+                label: obj.label,
+                description: obj.description,
+                modelName: 'PortfolioItem/Feature'
+            });
         }, this);
 
         var pnl = Ext.create('Ext.panel.Panel', {
-       //     title: stateMappings,
             flex: 1,
             border: 0,
             header: this._getHeaderPanel(stateMappings),
@@ -73,7 +77,6 @@ Ext.define("presentation-feature-list", {
 
 
         return {
-            //title: '',
             collapsible: false,
             collapsed: false,
             width: '100%',
@@ -81,14 +84,18 @@ Ext.define("presentation-feature-list", {
             padding: 15,
             margin: '5 5 5 5',
             items: buttons,
-            cls: 'feature-summary-header',
-            //header: {
-            //   cls: 'feature-summary-header',
-            //    padding: 15
-            //}
+            cls: 'feature-summary-header'
         };
     },
     _getStatePanel: function(state, stateMappings){
+
+        return {
+            xtype: 'tsfeaturegrid',
+            state: state,
+            label: stateMappings[state].label,
+            description: stateMappings[state].description
+        };
+
         return {
             title: '<span class="feature-header-title">' + stateMappings[state].label + '</span><span class="feature-header-description">&nbsp;(0) ' + stateMappings[state].description + '</span><span class="chevron icon-chevron-down"></span>',
             collapsible: true,
