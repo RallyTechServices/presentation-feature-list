@@ -5,22 +5,24 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
     columns: [{
         flex: 1,
         dataIndex: 'Name'
-    }],
+    },
+    ],
 
     plugins: [{
         ptype: 'rowexpander',
-        rowBodyTpl: new Ext.XTemplate('<p>hello!</p>')
+        rowBodyTpl: new Ext.XTemplate('<p>{Description}</p><br/><span class="more-info"><a href="https://www.google.com/" target="_blank">More Info</a></span>')
     }],
     title: 'Loading...',
     hideHeaders: true,
     collapsible: true,
-    animCollapse: true,
+    animCollapse: false,
     collapsed: true,
     width: '100%',
     flex: 1,
     hideCollapseTool: true,
     titleCollapse: true,
     margin: '5 5 5 5',
+    scroll: false,
     header: {
         cls: 'feature-header',
         padding: 20
@@ -34,19 +36,21 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
 
         this.store = Ext.create('Rally.data.wsapi.Store',{
             model: config.modelName,
-            fetch: ['FormattedID','Name','Description'],
+            fetch: ['FormattedID','Name','Description','State'],
             autoLoad: true,
             filters: [{
-                property: 'State',
+                property: 'State.Name',
                 value: config.state
             }],
             listeners: {
                 scope: this,
-                load: function(store){
+                load: function(store,records,success){
+                    console.log('store loaded',records, success);
                     this._setTitle(config.label, config.description, store.getTotalCount());
                 }
             }
         });
+
 
         this.callParent(arguments);
     },

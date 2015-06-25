@@ -3,11 +3,11 @@
 <head>
     <title>Presentation Feature List</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Tue Jun 23 2015 08:20:43 GMT-0600 (MDT) -->
+    <!--  Build Date: Thu Jun 25 2015 09:21:45 GMT-0500 (CDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue Jun 23 2015 08:20:43 GMT-0600 (MDT)";
-        var CHECKSUM = 3232455608;
+        var APP_BUILD_DATE = "Thu Jun 25 2015 09:21:45 GMT-0500 (CDT)";
+        var CHECKSUM = 3215136141;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -145,22 +145,24 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
     columns: [{
         flex: 1,
         dataIndex: 'Name'
-    }],
+    },
+    ],
 
     plugins: [{
         ptype: 'rowexpander',
-        rowBodyTpl: new Ext.XTemplate('<p>hello!</p>')
+        rowBodyTpl: new Ext.XTemplate('<p>{Description}</p><br/><span class="more-info"><a href="https://www.google.com/" target="_blank">More Info</a></span>')
     }],
     title: 'Loading...',
     hideHeaders: true,
     collapsible: true,
-    animCollapse: true,
+    animCollapse: false,
     collapsed: true,
     width: '100%',
     flex: 1,
     hideCollapseTool: true,
     titleCollapse: true,
     margin: '5 5 5 5',
+    scroll: false,
     header: {
         cls: 'feature-header',
         padding: 20
@@ -174,19 +176,21 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
 
         this.store = Ext.create('Rally.data.wsapi.Store',{
             model: config.modelName,
-            fetch: ['FormattedID','Name','Description'],
+            fetch: ['FormattedID','Name','Description','State'],
             autoLoad: true,
             filters: [{
-                property: 'State',
+                property: 'State.Name',
                 value: config.state
             }],
             listeners: {
                 scope: this,
-                load: function(store){
+                load: function(store,records,success){
+                    console.log('store loaded',records, success);
                     this._setTitle(config.label, config.description, store.getTotalCount());
                 }
             }
         });
+
 
         this.callParent(arguments);
     },
@@ -205,18 +209,21 @@ Ext.define("presentation-feature-list", {
     logger: new Rally.technicalservices.Logger(),
     defaults: { margin: 10 },
     items: [
-        {xtype:'container',itemId:'message_box',tpl:'Hello, <tpl>{_refObjectName}</tpl>'},
-        {xtype:'container',itemId:'display_box'},
         {xtype:'tsinfolink'}
     ],
 
     stateMappings: {
-        New: {label: 'Launched', description: 'Launched things'},
-        InProgress: {label: 'In Development', description: 'In development things'},
-        Done: {label: 'Released', description: 'Released things'}
+        Propose: {label: 'Propose', description: 'Proposed things'},
+        Discover: {label: 'Discover', description: 'Things in discovery'},
+        Develop: {label: 'Develop', description: 'In development things'},
+        Validate: {label: 'Validate', description: 'Things that are validated'},
+        Done: {label: 'Done', description: 'Things that are done'}
     },
+    modelType: 'PortfolioItem/Feature',
+    linkField: 'xxx',                                                                                                                                                                                                               
 
     launch: function() {
+
         this._buildPrettyGrid({project: this.getContext().getProject()._ref, projectScopeDown: true},
             this.stateMappings);
     },
@@ -229,7 +236,7 @@ Ext.define("presentation-feature-list", {
                 state: state,
                 label: obj.label,
                 description: obj.description,
-                modelName: 'PortfolioItem/Feature'
+                modelName: this.modelType
             });
         }, this);
 
@@ -252,7 +259,7 @@ Ext.define("presentation-feature-list", {
             scope: this,
             items: state_panels
         });
-        var p = this.add(pnl);
+        this.add(pnl);
 
 
     },
@@ -287,43 +294,6 @@ Ext.define("presentation-feature-list", {
             items: buttons,
             cls: 'feature-summary-header'
         };
-    },
-    _getStatePanel: function(state, stateMappings){
-
-        return {
-            xtype: 'tsfeaturegrid',
-            state: state,
-            label: stateMappings[state].label,
-            description: stateMappings[state].description
-        };
-
-        return {
-            title: '<span class="feature-header-title">' + stateMappings[state].label + '</span><span class="feature-header-description">&nbsp;(0) ' + stateMappings[state].description + '</span><span class="chevron icon-chevron-down"></span>',
-            collapsible: true,
-            collapsed: true,
-            width: '100%',
-            itemId: 'pnl-' + state,
-            flex: 1,
-            hideCollapseTool: true,
-            titleCollapse: true,
-            margin: '5 5 5 5',
-            header: {
-                cls: 'feature-header',
-                padding: 20
-            },
-            html: 'Panel content!',
-            listeners: {
-                scope: this,
-                collapse: this._collapsePanel,
-                expand: this._expandPanel
-            }
-        };
-    },
-    _expandPanel: function(pnl, toolEl, owner, tool){
-        pnl.setTitle(pnl.title.replace('icon-chevron-down','icon-chevron-up'));
-    },
-    _collapsePanel: function(pnl, toolEl, owner, tool){
-        pnl.setTitle(pnl.title.replace('icon-chevron-up','icon-chevron-down'));
     },
     _onButtonClick: function(btn){
         this.logger.log('_onButtonClick', btn.itemId);
@@ -408,7 +378,55 @@ Ext.define("presentation-feature-list", {
     border-color: #d6d6d6;
     border: 0px;
 }
+.x-grid-row-expander {
+    text-align: center;
+    vertical-align: middle;
+    border-style: solid;
+    border-color: #505050;
+    border-width: 1px;
+    border-radius: 8px;
+    color: #505050;
+    font-size: 14px;
+    font-weight: bold;
+    background: transparent;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    content: '+';
+    background-image: none!important;
+}
+.x-grid-row-collapsed .x-grid-row-expander {
+    content: '-';
+}
 
+.more-info {
+    background-color: #eb3c00;
+    padding: 10px;
+    margin: 10px;
+    color: white;
+    font-family: ProximaNovaSemiBold,Helvetica,Arial;
+    text-transform: uppercase;
+    font-size: 10px;
+    right: 100px;
+}
+a:link {
+    color: white;
+}
+
+/* visited link */
+a:visited {
+    color: white;
+}
+
+/* mouse over link */
+a:hover {
+    color: white;
+}
+
+/* selected link */
+a:active {
+    color: white;
+}
     </style>
 
 </head>

@@ -4,18 +4,21 @@ Ext.define("presentation-feature-list", {
     logger: new Rally.technicalservices.Logger(),
     defaults: { margin: 10 },
     items: [
-        {xtype:'container',itemId:'message_box',tpl:'Hello, <tpl>{_refObjectName}</tpl>'},
-        {xtype:'container',itemId:'display_box'},
         {xtype:'tsinfolink'}
     ],
 
     stateMappings: {
-        New: {label: 'Launched', description: 'Launched things'},
-        InProgress: {label: 'In Development', description: 'In development things'},
-        Done: {label: 'Released', description: 'Released things'}
+        Propose: {label: 'Propose', description: 'Proposed things'},
+        Discover: {label: 'Discover', description: 'Things in discovery'},
+        Develop: {label: 'Develop', description: 'In development things'},
+        Validate: {label: 'Validate', description: 'Things that are validated'},
+        Done: {label: 'Done', description: 'Things that are done'}
     },
+    modelType: 'PortfolioItem/Feature',
+    linkField: 'xxx',                                                                                                                                                                                                               
 
     launch: function() {
+
         this._buildPrettyGrid({project: this.getContext().getProject()._ref, projectScopeDown: true},
             this.stateMappings);
     },
@@ -28,7 +31,7 @@ Ext.define("presentation-feature-list", {
                 state: state,
                 label: obj.label,
                 description: obj.description,
-                modelName: 'PortfolioItem/Feature'
+                modelName: this.modelType
             });
         }, this);
 
@@ -51,7 +54,7 @@ Ext.define("presentation-feature-list", {
             scope: this,
             items: state_panels
         });
-        var p = this.add(pnl);
+        this.add(pnl);
 
 
     },
@@ -86,43 +89,6 @@ Ext.define("presentation-feature-list", {
             items: buttons,
             cls: 'feature-summary-header'
         };
-    },
-    _getStatePanel: function(state, stateMappings){
-
-        return {
-            xtype: 'tsfeaturegrid',
-            state: state,
-            label: stateMappings[state].label,
-            description: stateMappings[state].description
-        };
-
-        return {
-            title: '<span class="feature-header-title">' + stateMappings[state].label + '</span><span class="feature-header-description">&nbsp;(0) ' + stateMappings[state].description + '</span><span class="chevron icon-chevron-down"></span>',
-            collapsible: true,
-            collapsed: true,
-            width: '100%',
-            itemId: 'pnl-' + state,
-            flex: 1,
-            hideCollapseTool: true,
-            titleCollapse: true,
-            margin: '5 5 5 5',
-            header: {
-                cls: 'feature-header',
-                padding: 20
-            },
-            html: 'Panel content!',
-            listeners: {
-                scope: this,
-                collapse: this._collapsePanel,
-                expand: this._expandPanel
-            }
-        };
-    },
-    _expandPanel: function(pnl, toolEl, owner, tool){
-        pnl.setTitle(pnl.title.replace('icon-chevron-down','icon-chevron-up'));
-    },
-    _collapsePanel: function(pnl, toolEl, owner, tool){
-        pnl.setTitle(pnl.title.replace('icon-chevron-up','icon-chevron-down'));
     },
     _onButtonClick: function(btn){
         this.logger.log('_onButtonClick', btn.itemId);
