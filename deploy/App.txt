@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Presentation Feature List</title>
+    <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
+    <!--  Build Date: Wed Jul 08 2015 21:05:16 GMT-0700 (PDT) -->
+    
+    <script type="text/javascript">
+        var APP_BUILD_DATE = "Wed Jul 08 2015 21:05:16 GMT-0700 (PDT)";
+        var CHECKSUM = 4034134353;
+    </script>
+    
+    <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function() {
+             
+/**
+ * A link that pops up a version dialog box
+ */
+
+Ext.define('Rally.technicalservices.InfoLink',{
+    extend: 'Ext.Component',
+    alias: 'widget.tsinfolink',
+    
+    /**
+     * @cfg {String} informationHtml
+     * Additional text to be displayed on the popup dialog (for exmaple,
+     * to add a description of the app's use or functionality)
+     */
+    informationHtml: null,
+    
+    /**
+     * 
+     * cfg {String} title
+     * The title for the dialog box
+     */
+     title: "Build Information",
+    
+    renderTpl: "<div id='{id}-infolinkWrap' class='tsinfolink'>i</div>",
+
+    initComponent: function() {
+        this.callParent(arguments);
+       
+    },
+    
+    onRender: function() {
+        this.callParent(arguments);
+        this.mon(this.el,'click',this.onClick,this);
+    },
+    _generateChecksum: function(string){
+        var chk = 0x12345678,
+            i;
+        string = string.replace(/var CHECKSUM = .*;/,"");
+        string = string.replace(/\s/g,"");  //Remove all whitespace from the string.
+        
+        for (i = 0; i < string.length; i++) {
+            chk += (string.charCodeAt(i) * i);
+        }
+    
+        return chk;
+    },
+    _checkChecksum: function(container) {
+        var me = this;
+        Ext.Ajax.request({
+            url: document.URL,
+            params: {
+                id: 1
+            },
+            success: function (response) {
+                text = response.responseText;
+                if ( CHECKSUM ) {
+                    if ( CHECKSUM !== me._generateChecksum(text) ) {
+                        console.log("Checksums don't match!");
+                        if ( me.dialog ) {
+                            me.dialog.add({xtype:'container',html:'Checksums do not match'});
+                        }
+                    }
+                }
+            }
+        });
+    },
+    onClick: function(e) {
+        var me = this;
+        this._checkChecksum(this);
+        
+        var dialog_items = [];
+        
+        if ( this.informationHtml ) {
+            dialog_items.push({
+                xtype:'container',
+                html: this.informationHtml
+            });
+        }
+                
+        dialog_items.push({
+            xtype:'container',
+            html:"This app was created by the Rally Technical Services Team."
+        });
+        
+        if ( APP_BUILD_DATE ) {
+            dialog_items.push({
+                xtype:'container',
+                html:'Build date/time: ' + APP_BUILD_DATE
+            });
+        }
+        
+        if (this.dialog){this.dialog.destroy();}
+        this.dialog = Ext.create('Rally.ui.dialog.Dialog',{
+            defaults: { padding: 5, margin: 5 },
+            closable: true,
+            draggable: true,
+            title: me.title,
+            items: dialog_items
+        });
+        this.dialog.show();
+    }
+});
+
+/*
+ */
+Ext.define('Rally.technicalservices.Logger',{
+    constructor: function(config){
+        Ext.apply(this,config);
+    },
+    log: function(args){
+        var timestamp = "[ " + Ext.util.Format.date(new Date(), "Y-m-d H:i:s.u") + " ]";
+        //var output_args = arguments;
+        //output_args.unshift( [ "[ " + timestamp + " ]" ] );
+        //output_args = Ext.Array.push(output_args,arguments);
+        
+        var output_args = [];
+        output_args = Ext.Array.push(output_args,[timestamp]);
+        output_args = Ext.Array.push(output_args, Ext.Array.slice(arguments,0));
+
+        window.console && console.log.apply(console,output_args);
+    }
+
+});
+
+Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
+    extend: 'Ext.grid.Panel',
+    alias: 'widget.tsfeaturegrid',
+
+    columns: [{
+        flex: 1,
+        dataIndex: 'Name'
+    },
+    ],
+
+    plugins: [{
+        ptype: 'rowexpander',
+        rowBodyTpl: new Ext.XTemplate('<p>{Description}</p><br/><span class="more-info"><a href="https://www.google.com/" target="_blank">More Info</a></span>')
+    }],
+    title: 'Loading...',
+    hideHeaders: true,
+    collapsible: true,
+    animCollapse: false,
+    collapsed: true,
+    width: '100%',
+    flex: 1,
+    hideCollapseTool: true,
+    titleCollapse: true,
+    margin: '5 5 5 5',
+    scroll: false,
+    header: {
+        cls: 'feature-header',
+        padding: 20
+    },
+
+    constructor: function(config) {
+        this.mergeConfig(config);
+
+        this.itemId = 'pnl-' + config.state;
+
+        var filters = [{
+            property: 'State.Name',
+            value: config.state
+        },{
+            property: 'Archived',
+            value: false
+        }];
+
+        if (this.publishedField){
+            filters.push({
+                property: this.publishedField,
+                value: true
+            });
+        }
+
+        this.store = Ext.create('Rally.data.wsapi.Store',{
+            model: config.modelName,
+            fetch: ['FormattedID','Name','Description','State'],
+            autoLoad: true,
+            context: this.context,
+            filters: filters,
+            listeners: {
+                scope: this,
+                load: function(store,records,success){
+                    console.log('store loaded',records, success);
+                    this._setTitle(config.label, config.description, store.getTotalCount());
+                }
+            }
+        });
+
+     //   this.on('expand', this._onExpand, this);
+     //   this.on('collapse', this._onExpand, this);
+        this.callParent(arguments);
+    },
+    _setTitle: function(label, description, recordCount){
+        var icon_class = this.collapsed ? "chevron icon-chevron-down" : "chevron icon-chevron-up",
+            num_items = recordCount || 0,
+            title = Ext.String.format('<span class="feature-header-title">{0}</span><span class="feature-header-description">&nbsp;({1}) {2}</span><span class="{3}"></span>',label, num_items, description, icon_class);
+        console.log('icon_class', icon_class,this.collapsed, this.expanded);
+        this.setTitle(title);
+    },
+    _onExpand: function(){
+        var icon_class = this.collapsed ? "chevron icon-chevron-down" : "chevron icon-chevron-up",
+            prev_icon_class = this.collapsed ? "chevron icon-chevron-up" : "chevron icon-chevron-down";
+        var title = this.title.replace(prev_icon_class, icon_class);
+
+        this.setTitle(title);
+    }
+});
+
+Ext.define("presentation-feature-list", {
+    extend: 'Rally.app.App',
+    componentCls: 'app',
+    logger: new Rally.technicalservices.Logger(),
+    defaults: { margin: 10 },
+    items: [
+        {xtype:'tsinfolink'}
+    ],
+
+    stateMappings: {
+        Propose: {label: 'Propose', description: 'Proposed things'},
+        Discover: {label: 'Discover', description: 'Things in discovery'},
+        Develop: {label: 'Develop', description: 'In development things'},
+        Validate: {label: 'Validate', description: 'Things that are validated'},
+        Done: {label: 'Done', description: 'Things that are done'}
+    },
+    modelType: 'PortfolioItem/Feature',
+    linkField: 'xxx',
+
+    launch: function(){
+        
+        this.add({
+            xtype: 'rallycombobox',
+            storeConfig: {
+                autoLoad: true,
+                model: 'Project',
+                fetch: ['_ref','Name'],
+                filters: [{
+                    property: 'Parent',
+                    value: this.getContext().getProject()._ref
+                }],
+                remoteSort: false,
+                remoteFilter: true
+            },
+            listeners: {
+                scope: this,
+                ready: function(cb){
+                    this._buildPrettyGrid({project: cb.getValue(), projectScopeDown: true},
+                        this.stateMappings);
+                },
+                change: function(cb){
+                    this._buildPrettyGrid({project: cb.getValue(), projectScopeDown: true},
+                        this.stateMappings);
+                }
+            },
+            valueField: '_ref',
+            displayField: 'Name',
+            fieldLabel: 'Select Project'
+        });
+    },
+    _buildPrettyGrid: function(projectContext, stateMappings){
+
+        var state_panels = [];
+        _.each(stateMappings, function(obj, state){
+            state_panels.push({
+                xtype: 'tsfeaturegrid',
+                state: state,
+                label: obj.label,
+                context: projectContext,
+                description: obj.description,
+                modelName: this.modelType
+            });
+        }, this);
+
+        if (this.down('#pretty-pnl')){
+            this.down('#pretty-pnl').destroy();
+        }
+
+        var pnl = Ext.create('Ext.panel.Panel', {
+            itemId: 'pretty-pnl',
+            flex: 1,
+            border: 0,
+            header: this._getHeaderPanel(stateMappings),
+
+            defaults: {
+                // applied to each contained panel
+                bodyStyle: 'padding:15px'
+            },
+            layout: {
+                // layout-specific configs go here
+                type: 'vbox',
+                titleCollapse: false,
+                animate: true,
+               // activeOnTop: true
+            },
+            scope: this,
+            items: state_panels
+        });
+        this.add(pnl);
+    },
+    _getHeaderPanel: function(stateMappings){
+
+        var buttons = [];
+        _.each(stateMappings, function(obj, key){
+            console.log('obj', obj);
+            buttons.push({
+                xtype: 'button',
+                itemId: 'btn-' + key,
+                text: obj.label,
+                textAlign: 'left',
+                cls: 'feature-summary-header',
+                flex: 1,
+                height: 20,
+                listeners: {
+                    scope: this,
+                    click: this._onButtonClick
+                }
+            });
+        }, this);
+
+
+        return {
+            collapsible: false,
+            collapsed: false,
+            width: '100%',
+            flex: 1,
+            padding: 15,
+            margin: '5 5 5 5',
+            items: buttons,
+            cls: 'feature-summary-header'
+        };
+    },
+    _onButtonClick: function(btn){
+        this.logger.log('_onButtonClick', btn.itemId);
+        var pnl_item_id = btn.itemId.replace('btn-', '#pnl-');
+        this.down(pnl_item_id).expand();
+    }
+});
+
+            
+               Rally.launchApp('presentation-feature-list', {
+                   name: 'Presentation Feature List'
+               });
+        });
+    </script>
+    
+    <style type="text/css">
+
+.app {
+}
+.tsinfolink {
+    position:absolute;
+    right:0px;
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    text-align: center;
+    color: white;
+    background: #C0C0C0;
+    border-style: solid;
+    border-width: 1px;
+    margin-top: 25px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+.feature-header {
+    background-color: #eb3c00;
+    padding: '10px';
+    color: #FFFFFF;
+}
+.feature-summary-header {
+    background-color: #505050;
+    color: white;
+    font-weight: bold;
+    font-family: ProximaNovaSemiBold,Helvetica,Arial;
+    text-transform: uppercase;
+    font-size: 14px;
+}
+.feature-header-title {
+    color: white;
+    font-weight: bold;
+    font-family: ProximaNovaSemiBold,Helvetica,Arial;
+}
+.feature-header-description {
+    text-transform: none!important;
+    font-family: ProximaNovaSemiBold,Helvetica,Arial;
+    font-size: 12px;
+}
+.x-panel-header-text-container-default {
+    color: white;
+    font-size: 14px;
+    font-weight: normal;
+    font-family: ProximaNovaSemiBold,Helvetica,Arial;
+    text-transform: uppercase;
+}
+.chevron {
+    text-align: center;
+    vertical-align: middle;
+    border-style: solid;
+    border-color: white;
+    border-width: 1px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    background: transparent;
+    position: absolute;
+    right: 10px;
+    width: 16px;
+    height: 16px;
+}
+.x-panel-body-default {
+    border-color: #d6d6d6;
+    border: 0px;
+}
+.x-grid-row-expander {
+    text-align: center;
+    vertical-align: middle;
+    border-style: solid;
+    border-color: #505050;
+    border-width: 1px;
+    border-radius: 8px;
+    color: #505050;
+    font-size: 14px;
+    font-weight: bold;
+    background: transparent;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    content: '+';
+    background-image: none!important;
+}
+.x-grid-row-collapsed .x-grid-row-expander {
+    content: '-';
+}
+
+.more-info {
+    background-color: #eb3c00;
+    padding: 10px;
+    margin: 10px;
+    color: white;
+    font-family: ProximaNovaSemiBold,Helvetica,Arial;
+    text-transform: uppercase;
+    font-size: 10px;
+    right: 100px;
+}
+a:link {
+    color: white;
+}
+
+/* visited link */
+a:visited {
+    color: white;
+}
+
+/* mouse over link */
+a:hover {
+    color: white;
+}
+
+/* selected link */
+a:active {
+    color: white;
+}
+    </style>
+
+</head>
+<body></body>
+</html>
