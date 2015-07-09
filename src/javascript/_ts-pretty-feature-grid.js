@@ -32,16 +32,28 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
         this.mergeConfig(config);
 
         this.itemId = 'pnl-' + config.state;
-    //    this._setTitle(config.label, config.description);
+
+        var filters = [{
+            property: 'State.Name',
+            value: config.state
+        },{
+            property: 'Archived',
+            value: false
+        }];
+
+        if (this.publishedField){
+            filters.push({
+                property: this.publishedField,
+                value: true
+            });
+        }
 
         this.store = Ext.create('Rally.data.wsapi.Store',{
             model: config.modelName,
             fetch: ['FormattedID','Name','Description','State'],
             autoLoad: true,
-            filters: [{
-                property: 'State.Name',
-                value: config.state
-            }],
+            context: this.context,
+            filters: filters,
             listeners: {
                 scope: this,
                 load: function(store,records,success){
@@ -51,13 +63,21 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
             }
         });
 
-
+     //   this.on('expand', this._onExpand, this);
+     //   this.on('collapse', this._onExpand, this);
         this.callParent(arguments);
     },
     _setTitle: function(label, description, recordCount){
-        var icon_class = this.collapsed ? "chevron icon-chevron-right" : "chevron icon-chevron-down",
+        var icon_class = this.collapsed ? "chevron icon-chevron-down" : "chevron icon-chevron-up",
             num_items = recordCount || 0,
             title = Ext.String.format('<span class="feature-header-title">{0}</span><span class="feature-header-description">&nbsp;({1}) {2}</span><span class="{3}"></span>',label, num_items, description, icon_class);
+        console.log('icon_class', icon_class,this.collapsed, this.expanded);
+        this.setTitle(title);
+    },
+    _onExpand: function(){
+        var icon_class = this.collapsed ? "chevron icon-chevron-down" : "chevron icon-chevron-up",
+            prev_icon_class = this.collapsed ? "chevron icon-chevron-up" : "chevron icon-chevron-down";
+        var title = this.title.replace(prev_icon_class, icon_class);
 
         this.setTitle(title);
     }

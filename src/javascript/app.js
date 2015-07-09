@@ -15,12 +15,38 @@ Ext.define("presentation-feature-list", {
         Done: {label: 'Done', description: 'Things that are done'}
     },
     modelType: 'PortfolioItem/Feature',
-    linkField: 'xxx',                                                                                                                                                                                                               
+    linkField: 'xxx',
 
-    launch: function() {
-
-        this._buildPrettyGrid({project: this.getContext().getProject()._ref, projectScopeDown: true},
-            this.stateMappings);
+    launch: function(){
+        
+        this.add({
+            xtype: 'rallycombobox',
+            storeConfig: {
+                autoLoad: true,
+                model: 'Project',
+                fetch: ['_ref','Name'],
+                filters: [{
+                    property: 'Parent',
+                    value: this.getContext().getProject()._ref
+                }],
+                remoteSort: false,
+                remoteFilter: true
+            },
+            listeners: {
+                scope: this,
+                ready: function(cb){
+                    this._buildPrettyGrid({project: cb.getValue(), projectScopeDown: true},
+                        this.stateMappings);
+                },
+                change: function(cb){
+                    this._buildPrettyGrid({project: cb.getValue(), projectScopeDown: true},
+                        this.stateMappings);
+                }
+            },
+            valueField: '_ref',
+            displayField: 'Name',
+            fieldLabel: 'Select Project'
+        });
     },
     _buildPrettyGrid: function(projectContext, stateMappings){
 
@@ -30,12 +56,18 @@ Ext.define("presentation-feature-list", {
                 xtype: 'tsfeaturegrid',
                 state: state,
                 label: obj.label,
+                context: projectContext,
                 description: obj.description,
                 modelName: this.modelType
             });
         }, this);
 
+        if (this.down('#pretty-pnl')){
+            this.down('#pretty-pnl').destroy();
+        }
+
         var pnl = Ext.create('Ext.panel.Panel', {
+            itemId: 'pretty-pnl',
             flex: 1,
             border: 0,
             header: this._getHeaderPanel(stateMappings),
@@ -55,8 +87,6 @@ Ext.define("presentation-feature-list", {
             items: state_panels
         });
         this.add(pnl);
-
-
     },
     _getHeaderPanel: function(stateMappings){
 
