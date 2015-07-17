@@ -16,7 +16,7 @@ Ext.define("presentation-feature-list", {
 
         }
     },
-    modelType: 'PortfolioItem/Feature', //'PortfolioItem/Features',
+    modelType: 'PortfolioItem/Features', //cc ,
     linkFieldURL: null,
     modelStates: undefined,
     model: null,
