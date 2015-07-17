@@ -187,8 +187,17 @@ Ext.define("presentation-feature-list", {
     },
     _onButtonClick: function(btn){
         this.logger.log('_onButtonClick', btn.itemId);
-        var pnl_item_id = btn.itemId.replace('btn-', '#pnl-');
-        this.down(pnl_item_id).expand();
+
+        var buttons = this.query('button');
+
+        _.each(buttons, function(b){
+            var pid = b.itemId.replace('btn-','#pnl-');
+            if (this.down(pid) && b.itemId == btn.itemId){
+                this.down(pid).expand();
+            } else {
+                this.down(pid).collapse();
+            }
+        }, this);
     },
     /********************************************
      /* Overrides for App class

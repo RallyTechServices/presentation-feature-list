@@ -21,7 +21,7 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
                 if (values[this.linkField] && values[this.linkField].LinkID && this.linkFieldURL){
 
                     var link = this.linkFieldURL.replace('${id}',values[this.linkField].LinkID);
-                    return Ext.String.format('<br/><span class="more-info"><a href="{0}">More Info</a></span>',link);
+                    return Ext.String.format('<br/><span class="more-info"><a href="{0}" target="_blank">More Info</a></span>',link);
                 }
             }
         })
