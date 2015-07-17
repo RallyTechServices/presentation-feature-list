@@ -51,7 +51,7 @@
     border-style: solid;
     border-color: white;
     border-width: 1px;
-    border-radius: 8px;
+    border-radius: 3px;
     color: white;
     font-size: 14px;
     font-weight: bold;
@@ -83,6 +83,7 @@
     background-image: none!important;
 }
 .x-grid-row-collapsed .x-grid-row-expander {
+
     content: '-';
 }
 
