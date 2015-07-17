@@ -3,11 +3,11 @@
 <head>
     <title>Presentation Feature List</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Jul 08 2015 21:05:16 GMT-0700 (PDT) -->
+    <!--  Build Date: Fri Jul 17 2015 08:08:26 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Jul 08 2015 21:05:16 GMT-0700 (PDT)";
-        var CHECKSUM = 4034134353;
+        var APP_BUILD_DATE = "Fri Jul 17 2015 08:08:26 GMT-0600 (MDT)";
+        var CHECKSUM = 12861678723;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -142,16 +142,31 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
     extend: 'Ext.grid.Panel',
     alias: 'widget.tsfeaturegrid',
 
+    config: {
+        linkField: null,
+        linkFieldURL: null,
+        publishedField: null,
+        modelName: null
+    },
+
     columns: [{
         flex: 1,
         dataIndex: 'Name'
-    },
-    ],
+    }],
 
     plugins: [{
         ptype: 'rowexpander',
-        rowBodyTpl: new Ext.XTemplate('<p>{Description}</p><br/><span class="more-info"><a href="https://www.google.com/" target="_blank">More Info</a></span>')
+        rowBodyTpl: new Ext.XTemplate('<p>{Description}</p>{[this.getLink(values)]}',{
+            getLink: function(values){
+                if (values[this.linkField] && values[this.linkField].LinkID && this.linkFieldURL){
+
+                    var link = this.linkFieldURL.replace('${id}',values[this.linkField].LinkID);
+                    return Ext.String.format('<br/><span class="more-info"><a href="{0}">More Info</a></span>',link);
+                }
+            }
+        })
     }],
+
     title: 'Loading...',
     hideHeaders: true,
     collapsible: true,
@@ -168,6 +183,8 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
         padding: 20
     },
 
+    fetchList: ['FormattedID','Name','Description','State','Archived'],
+
     constructor: function(config) {
         this.mergeConfig(config);
 
@@ -181,47 +198,218 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
             value: false
         }];
 
-        if (this.publishedField){
+        if (config.publishedField){
             filters.push({
-                property: this.publishedField,
+                property: config.publishedField,
                 value: true
             });
         }
 
+        this.findPlugin('rowexpander').rowBodyTpl.linkField = config.linkField;
+        this.findPlugin('rowexpander').rowBodyTpl.linkFieldURL = config.linkFieldURL;
+
+        var fetch = this.fetchList.concat([config.linkField, config.publishedField]);
         this.store = Ext.create('Rally.data.wsapi.Store',{
             model: config.modelName,
-            fetch: ['FormattedID','Name','Description','State'],
+            fetch: fetch,
             autoLoad: true,
             context: this.context,
             filters: filters,
             listeners: {
                 scope: this,
                 load: function(store,records,success){
-                    console.log('store loaded',records, success);
                     this._setTitle(config.label, config.description, store.getTotalCount());
                 }
             }
         });
 
-     //   this.on('expand', this._onExpand, this);
-     //   this.on('collapse', this._onExpand, this);
         this.callParent(arguments);
+        this.on('expand', this._onExpand, this);
+        this.on('collapse', this._onExpand, this);
+
     },
     _setTitle: function(label, description, recordCount){
-        var icon_class = this.collapsed ? "chevron icon-chevron-down" : "chevron icon-chevron-up",
-            num_items = recordCount || 0,
-            title = Ext.String.format('<span class="feature-header-title">{0}</span><span class="feature-header-description">&nbsp;({1}) {2}</span><span class="{3}"></span>',label, num_items, description, icon_class);
-        console.log('icon_class', icon_class,this.collapsed, this.expanded);
+        var num_items = recordCount || 0,
+            title = Ext.String.format('<span class="feature-header-title">{0}</span><span class="feature-header-description">&nbsp;({1}) {2}</span><div class="control chevron {3}"></div>',label, num_items, description, "icon-chevron-right");
         this.setTitle(title);
     },
-    _onExpand: function(){
-        var icon_class = this.collapsed ? "chevron icon-chevron-down" : "chevron icon-chevron-up",
-            prev_icon_class = this.collapsed ? "chevron icon-chevron-up" : "chevron icon-chevron-down";
-        var title = this.title.replace(prev_icon_class, icon_class);
 
+    _onExpand: function(){
+        var icon_class = this.collapsed ? "icon-chevron-right" : "icon-chevron-down",
+            prev_icon_class = this.collapsed ? "icon-chevron-down" : "icon-chevron-right";
+        var title = this.getHeader().title.replace(prev_icon_class, icon_class);
+        this.suspendLayout = true;
         this.setTitle(title);
+        this.suspendLayout = false;
+   }
+});
+
+Ext.define('Rally.technicalservices.BooleanFieldComboBox',{
+    extend: 'Rally.ui.combobox.FieldComboBox',
+    alias: 'widget.tsbooleanfieldcombobox',
+
+    _isNotHidden: function(field) {
+        return (!field.hidden && field.attributeDefinition && field.attributeDefinition.AttributeType == 'BOOLEAN');
     }
 });
+
+Ext.define('Rally.technicalservices.WebLinkFieldComboBox',{
+    extend: 'Rally.ui.combobox.FieldComboBox',
+    alias: 'widget.tsweblinkfieldcombobox',
+
+    _isNotHidden: function(field) {
+        return (!field.hidden && field.attributeDefinition && field.attributeDefinition.AttributeType == 'WEB_LINK');
+    }
+});
+
+Ext.define('Rally.technicalservices.StateMapper',{
+    extend: 'Ext.form.field.Base',
+    alias: 'widget.tsmappersettings',
+    config: {
+        value: undefined,
+        states: undefined,
+        decodedValue: {}
+    },
+    fieldSubTpl: '<div id="{id}" class="settings-grid"></div>',
+
+    width: '100%',
+    cls: 'column-settings',
+
+    onDestroy: function() {
+        if (this._grid) {
+            this._grid.destroy();
+            delete this._grid;
+        }
+        this.callParent(arguments);
+    },
+
+    onRender: function() {
+        var decodedValue = {};
+        if (this.value && !_.isEmpty(this.value)){
+            decodedValue = Ext.JSON.decode(this.value);
+        }
+        this.callParent(arguments);
+
+        var data = [];
+        _.each(this.states, function(s){
+            var dsp = false,
+                lbl = s,
+                desc = '';
+
+            if (decodedValue[s]){
+                dsp = true;
+                lbl = decodedValue[s].label;
+                desc = decodedValue[s].description;
+            }
+            data.push({stateName: s, display: dsp, label: lbl, description: desc})
+        }, this);
+
+        this._store = Ext.create('Ext.data.Store', {
+            fields: ['stateName', 'display', 'label', 'description'],
+            data: data
+        });
+
+        this._grid = Ext.create('Rally.ui.grid.Grid', {
+            autoWidth: true,
+            renderTo: this.inputEl,
+            columnCfgs: this._getColumnCfgs(),
+            showPagingToolbar: false,
+            showRowActionsColumn: false,
+            enableRanking: false,
+            store: this._store,
+            editingConfig: {
+                publishMessages: false
+            }
+        });
+    },
+
+    _getColumnCfgs: function() {
+        var columns = [
+            {
+                text: 'State',
+                dataIndex: 'stateName'
+            },
+            {
+                text: 'Show',
+                dataIndex: 'display',
+                renderer: function (value) {
+                    return value === true ? 'Yes' : 'No';
+                },
+                editor: {
+                    xtype: 'rallycombobox',
+                    displayField: 'name',
+                    valueField: 'value',
+                    editable: false,
+                    storeType: 'Ext.data.Store',
+                    storeConfig: {
+                        remoteFilter: false,
+                        fields: ['name', 'value'],
+                        data: [
+                            {'name': 'Yes', 'value': true},
+                            {'name': 'No', 'value': false}
+                        ]
+                    }
+                }
+            },
+            {
+                text: 'Label',
+                dataIndex: 'label',
+                emptyCellText: '-- No Mapping --',
+                editor: {
+                    xtype: 'rallytextfield'
+                }
+            },
+            {
+                text: 'Description',
+                dataIndex: 'description',
+                emptyCellText: '',
+                flex: 1,
+                editor: {
+                    xtype: 'rallytextfield'
+                }
+            }
+        ];
+        return columns;
+    },
+
+    /**
+     * When a form asks for the data this field represents,
+     * give it the name of this field and the ref of the selected project (or an empty string).
+     * Used when persisting the value of this field.
+     * @return {Object}
+     */
+    getSubmitData: function() {
+        var data = {};
+        data[this.name] = Ext.JSON.encode(this._buildSettingValue());
+        return data;
+    },
+    _buildSettingValue: function() {
+        var mappings = {};
+        this._store.each(function(record) {
+            if (record.get('display')) {
+                mappings[record.get('stateName')] = {
+                    label: record.get('label'),
+                    description: record.get('description')
+                };
+            }
+        }, this);
+        return mappings;
+    },
+
+    getErrors: function() {
+        var errors = [];
+        if (this._storeLoaded && !Ext.Object.getSize(this._buildSettingValue())) {
+            errors.push('At least one state must be mapped and displayed.');
+        }
+        return errors;
+    },
+
+    setValue: function(value) {
+        this.callParent(arguments);
+        this._value = value;
+    }
+});
+
 
 Ext.define("presentation-feature-list", {
     extend: 'Rally.app.App',
@@ -229,21 +417,83 @@ Ext.define("presentation-feature-list", {
     logger: new Rally.technicalservices.Logger(),
     defaults: { margin: 10 },
     items: [
+        {xtype:'container',itemId:'settings_box'},
         {xtype:'tsinfolink'}
     ],
 
-    stateMappings: {
-        Propose: {label: 'Propose', description: 'Proposed things'},
-        Discover: {label: 'Discover', description: 'Things in discovery'},
-        Develop: {label: 'Develop', description: 'In development things'},
-        Validate: {label: 'Validate', description: 'Things that are validated'},
-        Done: {label: 'Done', description: 'Things that are done'}
+    config: {
+        defaultSettings: {
+            stateMappings: {},
+            linkField: 'c_PublishToRoadmapURL',
+            publishedField: 'c_PublishToRoadmap',
+
+        }
     },
-    modelType: 'PortfolioItem/Feature',
-    linkField: 'xxx',
+    modelType: 'PortfolioItem/Features', //cc ,
+    linkFieldURL: null,
+    modelStates: undefined,
+    model: null,
+    externalAppSettingsKey: 'technicalServicesRoadmapAppSettings',
 
     launch: function(){
-        
+        Rally.data.ModelFactory.getModel({
+            type: this.modelType,
+            scope: this,
+            success: function(model) {
+                this.model = model;
+                model.getField('State').getAllowedValueStore().load({
+                    scope: this,
+                    callback: function(records, operation, success) {
+                        if (success){
+                            var modelStates = [];
+                            Ext.Array.each(records, function(allowedValue) {
+                                if (allowedValue.get('StringValue') && allowedValue.get('StringValue').length > 0){
+                                    modelStates.push(allowedValue.get('StringValue'));
+                                }
+                            });
+                            this.modelStates = modelStates;
+                            if (this.isExternal()){
+                               // this.showSettings(this.config)
+                                this.getExternalAppSettings(this.externalAppSettingsKey);
+                            } else {
+                                this.onSettingsUpdate(this.getSettings());
+                            }
+                        } else {
+                            Rally.ui.notify.Notifier.showError({message: Ext.String.format('Unable to load State field values for {0}: [{1}]',this.modelType, operations.error.errors.join(', '))});
+                        }
+                    }
+                });
+            },
+            failure: function(){
+                Rally.ui.notify.Notifier.showError({message: Ext.String.format('Unable to load model type [{0}]',this.modelType)});
+            }
+        });
+    },
+    _prepareApp: function(){
+        var model = this.model;
+        if (model && model.getField(this.linkField) && model.getField(this.linkField).attributeDefinition){
+            this.linkFieldURL = model.getField(this.linkField).attributeDefinition.URL;
+        }
+        this._addProjectPicker();
+    },
+    _addProjectPicker: function(){
+
+
+        if (_.isEmpty(this.stateMappings)){
+            this.add({
+                xtype: 'container',
+                itemId: 'ct-no-settings',
+                flex: 1,
+                style: {
+                    textAlign: 'center'
+                },
+                html: '<b>No states are configured to be displayed.  Please use the App Settings to display at least one State</b>'
+            });
+            return;
+        }
+        if (this.down('#ct-no-settings')){
+            this.down('#ct-no-settings').destroy();
+        }
         this.add({
             xtype: 'rallycombobox',
             storeConfig: {
@@ -276,6 +526,7 @@ Ext.define("presentation-feature-list", {
     _buildPrettyGrid: function(projectContext, stateMappings){
 
         var state_panels = [];
+
         _.each(stateMappings, function(obj, state){
             state_panels.push({
                 xtype: 'tsfeaturegrid',
@@ -283,7 +534,10 @@ Ext.define("presentation-feature-list", {
                 label: obj.label,
                 context: projectContext,
                 description: obj.description,
-                modelName: this.modelType
+                modelName: this.modelType,
+                linkField: this.linkField,
+                linkFieldURL: this.linkFieldURL,
+                publishedField: this.publishedField
             });
         }, this);
 
@@ -317,7 +571,6 @@ Ext.define("presentation-feature-list", {
 
         var buttons = [];
         _.each(stateMappings, function(obj, key){
-            console.log('obj', obj);
             buttons.push({
                 xtype: 'button',
                 itemId: 'btn-' + key,
@@ -349,6 +602,131 @@ Ext.define("presentation-feature-list", {
         this.logger.log('_onButtonClick', btn.itemId);
         var pnl_item_id = btn.itemId.replace('btn-', '#pnl-');
         this.down(pnl_item_id).expand();
+    },
+    /********************************************
+     /* Overrides for App class
+     /*
+     /********************************************/
+    //getSettingsFields:  Override for App
+    getSettingsFields: function() {
+        var me = this;
+
+        return [
+            {
+                name: 'publishedField',
+                xtype: 'tsbooleanfieldcombobox',
+                fieldLabel: 'Published Field',
+                model: this.modelType,
+                labelWidth: 200,
+                labelAlign: 'right',
+                minValue: 0
+            },{
+                name: 'linkField',
+                xtype: 'tsweblinkfieldcombobox',
+                model: this.modelType,
+                fieldLabel: 'Publish To Roadmap Link Field',
+                labelWidth: 200,
+                labelAlign: 'right',
+                minValue: 0
+            },{
+                name: 'encodedStateMapping',
+                xtype: 'tsmappersettings',
+                states: this.modelStates,
+                fieldLabel: 'State Mappings',
+                margin: 15,
+                labelAlign: 'top'
+            }
+        ];
+    },
+    isExternal: function(){
+        return typeof(this.getAppId()) == 'undefined';
+    },
+    showSettings: function(options) {
+        this._appSettings = Ext.create('Rally.app.AppSettings', Ext.apply({
+            fields: this.getSettingsFields(),
+            settings: this.getSettings(),
+            defaultSettings: this.getDefaultSettings(),
+            context: this.getContext(),
+            settingsScope: this.settingsScope,
+            autoScroll: true
+        }, options));
+
+        this._appSettings.on('cancel', this._hideSettings, this);
+        this._appSettings.on('save', this._onSettingsSaved, this);
+        if (this.isExternal()){
+            if (this.down('#settings_box').getComponent(this._appSettings.id)==undefined){
+                this.down('#settings_box').add(this._appSettings);
+            }
+        } else {
+            this.hide();
+            this.up().add(this._appSettings);
+        }
+        return this._appSettings;
+    },
+    _onSettingsSaved: function(settings){
+        Ext.apply(this.settings, settings);
+        this._hideSettings();
+        this.onSettingsUpdate(settings);
+    },
+    onSettingsUpdate: function (settings){
+        this.logger.log('onSettingsUpdate',settings);
+        Ext.apply(this, settings);
+        this.saveExternalAppSettings(this.externalAppSettingsKey, settings);
+        if (!_.isEmpty(settings.encodedStateMapping)){
+            this.stateMappings = Ext.JSON.decode(settings.encodedStateMapping);
+        } else {
+            this.stateMappings = {};
+        }
+        this._prepareApp();
+    },
+    saveExternalAppSettings: function(key, settings){
+
+        var prefs = {};
+        _.each(settings, function(val, setting_key){
+            var pref_key = key + '.' + setting_key;
+            prefs[pref_key] = val;
+        });
+
+        this.logger.log('SaveExternalAppSettings', key, settings, prefs);
+        Rally.data.PreferenceManager.update({
+            project: this.getContext().getProject()._ref,
+            settings: prefs,
+            scope: this,
+            success: function(updatedRecords, notUpdatedRecords) {
+               this.logger.log('settings saved', key, updatedRecords, notUpdatedRecords);
+            }
+        });
+    },
+    getExternalAppSettings: function(key){
+        Rally.data.PreferenceManager.load({
+            project: this.getContext().getProject()._ref,
+            additionalFilters: [{
+                property: 'name',
+                operator: 'contains',
+                value: key
+            }],
+            scope: this,
+            cache: false,
+            success: function(prefs) {
+                this.logger.log('settings loaded', key, prefs);
+                _.each(prefs, function(val, pref_name){
+                    if (/\.linkField$/.test(pref_name)){
+                        this.linkField = val;
+                    }
+                    if (/\.publishedField$/.test(pref_name)){
+                        this.publishedField = val;
+                    }
+                    if (/\.encodedStateMapping$/.test(pref_name)){
+                        if (val && !_.isEmpty(val)){
+                            this.stateMappings = Ext.JSON.decode(val);
+                        }
+                    }
+                }, this);
+
+                this._prepareApp();
+            }
+        });
+
     }
 });
 
@@ -414,7 +792,7 @@ Ext.define("presentation-feature-list", {
     border-style: solid;
     border-color: white;
     border-width: 1px;
-    border-radius: 8px;
+    border-radius: 3px;
     color: white;
     font-size: 14px;
     font-weight: bold;
@@ -428,26 +806,7 @@ Ext.define("presentation-feature-list", {
     border-color: #d6d6d6;
     border: 0px;
 }
-.x-grid-row-expander {
-    text-align: center;
-    vertical-align: middle;
-    border-style: solid;
-    border-color: #505050;
-    border-width: 1px;
-    border-radius: 8px;
-    color: #505050;
-    font-size: 14px;
-    font-weight: bold;
-    background: transparent;
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    content: '+';
-    background-image: none!important;
-}
-.x-grid-row-collapsed .x-grid-row-expander {
-    content: '-';
-}
+
 
 .more-info {
     background-color: #eb3c00;
@@ -477,6 +836,7 @@ a:hover {
 a:active {
     color: white;
 }
+
     </style>
 
 </head>

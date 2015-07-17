@@ -2,16 +2,31 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
     extend: 'Ext.grid.Panel',
     alias: 'widget.tsfeaturegrid',
 
+    config: {
+        linkField: null,
+        linkFieldURL: null,
+        publishedField: null,
+        modelName: null
+    },
+
     columns: [{
         flex: 1,
         dataIndex: 'Name'
-    },
-    ],
+    }],
 
     plugins: [{
         ptype: 'rowexpander',
-        rowBodyTpl: new Ext.XTemplate('<p>{Description}</p><br/><span class="more-info"><a href="https://www.google.com/" target="_blank">More Info</a></span>')
+        rowBodyTpl: new Ext.XTemplate('<p>{Description}</p>{[this.getLink(values)]}',{
+            getLink: function(values){
+                if (values[this.linkField] && values[this.linkField].LinkID && this.linkFieldURL){
+
+                    var link = this.linkFieldURL.replace('${id}',values[this.linkField].LinkID);
+                    return Ext.String.format('<br/><span class="more-info"><a href="{0}">More Info</a></span>',link);
+                }
+            }
+        })
     }],
+
     title: 'Loading...',
     hideHeaders: true,
     collapsible: true,
@@ -28,6 +43,8 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
         padding: 20
     },
 
+    fetchList: ['FormattedID','Name','Description','State','Archived'],
+
     constructor: function(config) {
         this.mergeConfig(config);
 
@@ -41,44 +58,48 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
             value: false
         }];
 
-        if (this.publishedField){
+        if (config.publishedField){
             filters.push({
-                property: this.publishedField,
+                property: config.publishedField,
                 value: true
             });
         }
 
+        this.findPlugin('rowexpander').rowBodyTpl.linkField = config.linkField;
+        this.findPlugin('rowexpander').rowBodyTpl.linkFieldURL = config.linkFieldURL;
+
+        var fetch = this.fetchList.concat([config.linkField, config.publishedField]);
         this.store = Ext.create('Rally.data.wsapi.Store',{
             model: config.modelName,
-            fetch: ['FormattedID','Name','Description','State'],
+            fetch: fetch,
             autoLoad: true,
             context: this.context,
             filters: filters,
             listeners: {
                 scope: this,
                 load: function(store,records,success){
-                    console.log('store loaded',records, success);
                     this._setTitle(config.label, config.description, store.getTotalCount());
                 }
             }
         });
 
-     //   this.on('expand', this._onExpand, this);
-     //   this.on('collapse', this._onExpand, this);
         this.callParent(arguments);
+        this.on('expand', this._onExpand, this);
+        this.on('collapse', this._onExpand, this);
+
     },
     _setTitle: function(label, description, recordCount){
-        var icon_class = this.collapsed ? "chevron icon-chevron-down" : "chevron icon-chevron-up",
-            num_items = recordCount || 0,
-            title = Ext.String.format('<span class="feature-header-title">{0}</span><span class="feature-header-description">&nbsp;({1}) {2}</span><span class="{3}"></span>',label, num_items, description, icon_class);
-        console.log('icon_class', icon_class,this.collapsed, this.expanded);
+        var num_items = recordCount || 0,
+            title = Ext.String.format('<span class="feature-header-title">{0}</span><span class="feature-header-description">&nbsp;({1}) {2}</span><div class="control chevron {3}"></div>',label, num_items, description, "icon-chevron-right");
         this.setTitle(title);
     },
-    _onExpand: function(){
-        var icon_class = this.collapsed ? "chevron icon-chevron-down" : "chevron icon-chevron-up",
-            prev_icon_class = this.collapsed ? "chevron icon-chevron-up" : "chevron icon-chevron-down";
-        var title = this.title.replace(prev_icon_class, icon_class);
 
+    _onExpand: function(){
+        var icon_class = this.collapsed ? "icon-chevron-right" : "icon-chevron-down",
+            prev_icon_class = this.collapsed ? "icon-chevron-down" : "icon-chevron-right";
+        var title = this.getHeader().title.replace(prev_icon_class, icon_class);
+        this.suspendLayout = true;
         this.setTitle(title);
-    }
+        this.suspendLayout = false;
+   }
 });
