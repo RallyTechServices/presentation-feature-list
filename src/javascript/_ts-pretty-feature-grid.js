@@ -19,7 +19,7 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
         rowBodyTpl: new Ext.XTemplate('<p>{Description}</p>{[this.getLink(values)]}',{
             getLink: function(values){
                 if (values[this.linkField] && values[this.linkField].LinkID && this.linkFieldURL){
-                    console.log('val',values[this.linkField]);
+
                     var link = this.linkFieldURL.replace('${id}',values[this.linkField].LinkID);
                     return Ext.String.format('<br/><span class="more-info"><a href="{0}">More Info</a></span>',link);
                 }
@@ -86,12 +86,14 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
         this.callParent(arguments);
         this.on('expand', this._onExpand, this);
         this.on('collapse', this._onExpand, this);
+
     },
     _setTitle: function(label, description, recordCount){
         var num_items = recordCount || 0,
             title = Ext.String.format('<span class="feature-header-title">{0}</span><span class="feature-header-description">&nbsp;({1}) {2}</span><div class="control chevron {3}"></div>',label, num_items, description, "icon-chevron-right");
         this.setTitle(title);
     },
+
     _onExpand: function(){
         var icon_class = this.collapsed ? "icon-chevron-right" : "icon-chevron-down",
             prev_icon_class = this.collapsed ? "icon-chevron-down" : "icon-chevron-right";

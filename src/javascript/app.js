@@ -115,7 +115,6 @@ Ext.define("presentation-feature-list", {
         var state_panels = [];
 
         _.each(stateMappings, function(obj, state){
-            console.log('obj',obj);
             state_panels.push({
                 xtype: 'tsfeaturegrid',
                 state: state,
@@ -159,7 +158,6 @@ Ext.define("presentation-feature-list", {
 
         var buttons = [];
         _.each(stateMappings, function(obj, key){
-            console.log('obj', obj);
             buttons.push({
                 xtype: 'button',
                 itemId: 'btn-' + key,

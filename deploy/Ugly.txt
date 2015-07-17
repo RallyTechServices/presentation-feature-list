@@ -3,10 +3,10 @@
 <head>
     <title>Presentation Feature List</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu Jul 16 2015 18:40:59 GMT-0600 (MDT) -->
+    <!--  Build Date: Fri Jul 17 2015 08:07:13 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Jul 16 2015 18:40:59 GMT-0600 (MDT)";
+        var APP_BUILD_DATE = "Fri Jul 17 2015 08:07:13 GMT-0600 (MDT)";
         var CHECKSUM = [%= checksum %];
     </script>
     
@@ -91,27 +91,7 @@
     border-color: #d6d6d6;
     border: 0px;
 }
-.x-grid-row-expander {
-    text-align: center;
-    vertical-align: middle;
-    border-style: solid;
-    border-color: #505050;
-    border-width: 1px;
-    border-radius: 8px;
-    color: #505050;
-    font-size: 14px;
-    font-weight: bold;
-    background: transparent;
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    content: '+';
-    background-image: none!important;
-}
-.x-grid-row-collapsed .x-grid-row-expander {
 
-    content: '-';
-}
 
 .more-info {
     background-color: #eb3c00;

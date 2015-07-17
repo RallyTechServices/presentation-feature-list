@@ -3,11 +3,11 @@
 <head>
     <title>Presentation Feature List</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu Jul 16 2015 18:40:59 GMT-0600 (MDT) -->
+    <!--  Build Date: Fri Jul 17 2015 08:07:12 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Jul 16 2015 18:40:59 GMT-0600 (MDT)";
-        var CHECKSUM = 13632143831;
+        var APP_BUILD_DATE = "Fri Jul 17 2015 08:07:12 GMT-0600 (MDT)";
+        var CHECKSUM = 12894167461;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -159,7 +159,7 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
         rowBodyTpl: new Ext.XTemplate('<p>{Description}</p>{[this.getLink(values)]}',{
             getLink: function(values){
                 if (values[this.linkField] && values[this.linkField].LinkID && this.linkFieldURL){
-                    console.log('val',values[this.linkField]);
+
                     var link = this.linkFieldURL.replace('${id}',values[this.linkField].LinkID);
                     return Ext.String.format('<br/><span class="more-info"><a href="{0}">More Info</a></span>',link);
                 }
@@ -226,12 +226,14 @@ Ext.define('Rally.technicalservices.PrettyFeatureGrid',{
         this.callParent(arguments);
         this.on('expand', this._onExpand, this);
         this.on('collapse', this._onExpand, this);
+
     },
     _setTitle: function(label, description, recordCount){
         var num_items = recordCount || 0,
             title = Ext.String.format('<span class="feature-header-title">{0}</span><span class="feature-header-description">&nbsp;({1}) {2}</span><div class="control chevron {3}"></div>',label, num_items, description, "icon-chevron-right");
         this.setTitle(title);
     },
+
     _onExpand: function(){
         var icon_class = this.collapsed ? "icon-chevron-right" : "icon-chevron-down",
             prev_icon_class = this.collapsed ? "icon-chevron-down" : "icon-chevron-right";
@@ -282,7 +284,6 @@ Ext.define('Rally.technicalservices.StateMapper',{
     },
 
     onRender: function() {
-        console.log('value',this.value, this.states);
         var decodedValue = {};
         if (this.value && !_.isEmpty(this.value)){
             decodedValue = Ext.JSON.decode(this.value);
@@ -527,7 +528,6 @@ Ext.define("presentation-feature-list", {
         var state_panels = [];
 
         _.each(stateMappings, function(obj, state){
-            console.log('obj',obj);
             state_panels.push({
                 xtype: 'tsfeaturegrid',
                 state: state,
@@ -571,7 +571,6 @@ Ext.define("presentation-feature-list", {
 
         var buttons = [];
         _.each(stateMappings, function(obj, key){
-            console.log('obj', obj);
             buttons.push({
                 xtype: 'button',
                 itemId: 'btn-' + key,
@@ -807,27 +806,7 @@ Ext.define("presentation-feature-list", {
     border-color: #d6d6d6;
     border: 0px;
 }
-.x-grid-row-expander {
-    text-align: center;
-    vertical-align: middle;
-    border-style: solid;
-    border-color: #505050;
-    border-width: 1px;
-    border-radius: 8px;
-    color: #505050;
-    font-size: 14px;
-    font-weight: bold;
-    background: transparent;
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    content: '+';
-    background-image: none!important;
-}
-.x-grid-row-collapsed .x-grid-row-expander {
 
-    content: '-';
-}
 
 .more-info {
     background-color: #eb3c00;
